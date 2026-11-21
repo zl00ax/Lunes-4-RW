@@ -23,12 +23,20 @@ jobs:
         uses: actions/checkout@v4
 
       - name: 防止 60 天无活动自动禁用
-        uses: gautamkrishnar/keepalive-workflow@v2
-        with:
-          committer_username: 'github-actions[bot]'
-          committer_email: 'github-actions[bot]@users.noreply.github.com'
-          commit_message: 'chore: keepalive workflow'
-          time_elapsed: 45
+        run: |
+          last_commit=$(git log -1 --format=%ct)
+          now=$(date +%s)
+          diff_days=$(( (now - last_commit) / 86400 ))
+          echo "距离上次提交已过 ${diff_days} 天"
+          if [ "$diff_days" -ge 45 ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "github-actions[bot]@users.noreply.github.com"
+            git commit --allow-empty -m "chore: keepalive workflow"
+            git push
+            echo "✅ 已自动提交空记录以重置 60 天计时"
+          else
+            echo "⏳ 未满 45 天，无需提交"
+          fi
 
       - name: 设置 Python
         uses: actions/setup-python@v5
